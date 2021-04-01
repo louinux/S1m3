@@ -1,19 +1,17 @@
 
 #include <SPI.h>
 #include <WiFiNINA.h>
+#include "arduino_secrets.h" 
+///////please enter your sensitive data in the Secret tab/arduino_secrets.h
+char ssid[] = SECRET_SSID;        // your network SSID (name)
+char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+int keyIndex = 0;                // your network key Index number (needed only for WEP)
 
-char dbg = 1; // Normalement 0, mettre a 1 pour avoir une trace du programme dans le Serial Monitor
+char dbg = 0; // Normalement 0, mettre a 1 pour avoir une trace du programme dans le Serial Monitor
 int ddbg = 1000; // debug delay
-String maVersion = "202103311257"; // date '+%Y%m%d%H%M'
-
-
-
-// Reseau
-char ssid[] = "Loft";         // my network SSID (name)  // ################## mettre ds un autre fichier
-char pass[] = "1063Becker";       // my network key
+String maVersion = "202104010927"; // date '+%Y%m%d%H%M'
 
 int status = WL_IDLE_STATUS;                     // the Wifi radio's status
-// FIN Reseau
 
 unsigned long time1;
 unsigned long time2 = 0;
@@ -24,16 +22,19 @@ WiFiServer server(80);  // port pour http
 WiFiClient client = server.available(); // Returns the number of bytes available for reading (that is, the amount of data that has been written to the client by the server it is connected to).
 
 // Bloc DHT11
-#include "DHT.h" // Charge la librairie Digital Temperature and Humidity sensors // ?????????? la quellle et quel URL
-#define DHTPIN 4     // Digital pin connected to the DHT sensor   
-#define DHTTYPE DHT11  // DHT 11 ou 22
-DHT dht(DHTPIN, DHTTYPE);   // Initialize DHT sensor.
+#include "DHT.h"
+#define DHTPIN 4        // what pin we're connected to
+#define DHTTYPE DHT22   // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE);
+char charBuf[40];
 // Fin DHT11
+
 
 void setup()
 {
 
   Serial.begin(9600);  // vitesse du transfert du port serie Initialize serial and wait for port to open:
+   dht.begin();  // sondeTH
   if (dbg) {
     delay(5000);
     Serial.println ("\n\n------------ S1m3 mode DEBUG ------------\n\n");
@@ -41,6 +42,7 @@ void setup()
     Serial.println (maVersion);
     Serial.println ("\n\nBoucle setup");
   }
+  // freeRam ();
   pinMode(9, OUTPUT);   // set the LED pin mode  ######################################### a  faire
   digitalWrite(9, LOW); //LED OFF to show disconnected
   if (dbg) while (!Serial); // wait for serial port to connect. Needed for Leonardo only
@@ -55,6 +57,7 @@ void setup()
     delay(ddbg);
     Serial.println (maVersion);
   }
+      Serial.println (maVersion);
 }
 
 void loop()
@@ -63,6 +66,7 @@ void loop()
     Serial.println ("\nBoucle loop");
     delay(ddbg);
   }
+ sondeTH();
   // millis: Returns the number of milliseconds passed since the Arduino board began running the current program.
   // This number will overflow (go back to zero), after approximately 50 days.
   time1 = millis();
@@ -80,12 +84,10 @@ void loop()
       // print the SSID of the network you're attached to:
       Serial.print("\tSSID: ");
       Serial.println(WiFi.SSID());
-
       // print your board's IP address:
       IPAddress ip = WiFi.localIP();
       Serial.print("\tIP Address: ");
       Serial.println(ip);
-
       // print the received signal strength:
       long rssi = WiFi.RSSI();
       Serial.print("\tsignal strength (RSSI):");
@@ -94,43 +96,10 @@ void loop()
       Serial.println ("\tFIN Boucle time 3s");
     }
   }
-
-
-
-  delay(5000);
   // listen for incoming clients
   if (dbg) {
     Serial.println ("\n\nLoop listen for incoming clients");
   }
-
-  //  202103281851
-
-  //  WiFiClient client = server.available();
-  //  if (client) {
-  //
-  //    if (client.connected()) {
-  //      Serial.println("Loop Connected to client");
-  //    }
-  //    // close the connection:
-  //    client.stop();
-  //    Serial.println("Loop Connected stoped to client");
-  //  }
-  //
-  //  delay(5000);
-  //  if (dbg) {
-  //    Serial.println ("Loop client = server.available");
-  //  }
-  //  client = server.available(); // Gets a client that is connected to the server and has data available for reading.
-  //
-  //  if (dbg) {
-  //    Serial.print ("Loop -> client = server.available= ");
-  //    Serial.println (client);
-  //    Serial.println ("Gets a client that is connected to the server and has data available for reading");
-  //    if (dbg && (client == 0)) {
-  //      Serial.print ("!!!######### client error client == 0 ######### !!!");
-  //    }
-  //    delay(ddbg);
-  //  }
 
   WiFiClient client = server.available();
   if (client) {
@@ -146,8 +115,6 @@ void loop()
     delay(ddbg);
   }
 }
-
-
 
 void TestWiFiConnection()
 // test if always connected
@@ -171,11 +138,6 @@ void TestWiFiConnection()
     delay(ddbg);
   }
 }
-
-
-
-
-
 
 void WiFiConnect()
 //connect to my SSID
@@ -214,10 +176,6 @@ void WiFiConnect()
   }
 }
 
-
-
-
-
 char ScanSSIDs()
 //scan SSIDs, and if my SSID is present return 1
 {
@@ -243,21 +201,14 @@ char ScanSSIDs()
     if (dbg)Serial.println ("return (0); ERROR");
   }
   for (int thisNet = 0; thisNet < numSsid; thisNet++) if (strcmp(WiFi.SSID(thisNet), ssid) == 0) score = 1; //if one is = to my SSID
-
   if (dbg) {
     Serial.print ("\t\t\t\tDEBUG DEBUGscore: ");
     Serial.println (score);
     Serial.println ("\t\t\tFIN Boucle ScanSSIDs DEBUG ");
     delay(ddbg);
   }
-
   return (score);
 }
-
-
-
-
-
 
 // Creation de la page web qui sera affichee
 void printWEB() {
@@ -284,52 +235,14 @@ void printWEB() {
             client.println("HTTP/1.1 200 OK");
             client.println("Content-type:text/html");
             client.println();
-            client.print("<br>");
-// if (dbg) { Serial.print ("\n\n################   Ligne: 288   ############\n\n"); delay(ddbg);} 
+            // client.print("<br>");
+            client.print("<p>");
+            client.print(maVersion);
+            client.print("</p>");
             client.print("<H1>Preuve de concept <FONT color=green size=+8> S1m<SUP>3</SUP></FONT></H1>");
-            // #############SORTIR D ICI ET METTRE EN FONCTION********************** !!! Antoine ???
-            // Reading temperature or humidity takes about 250 milliseconds!
-            // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-//            float h = dht.readHumidity();
-//            // Read temperature as Celsius (the default)
-//            float t = dht.readTemperature();
-//            // Read temperature as Fahrenheit (isFahrenheit = true)
-//            float f = dht.readTemperature(true);
-//
-//            // Check if any reads failed and exit early (to try again).
-//            if (isnan(h) || isnan(t) || isnan(f)) {  // DHT  isnan(), that returns true when there is not a number in its argument.
-//              Serial.println(F("Failed to read from DHT sensor!"));
-//              return;
-//            }
-//
-//            // Compute heat index in Fahrenheit (the default)
-//            float hif = dht.computeHeatIndex(f, h);  //Compute heat index in Fahrenheit (the default)
-//            // Compute heat index in Celsius (isFahreheit = false)
-//            float hic = dht.computeHeatIndex(t, h, false);  // Compute heat index in Celsius (isFahreheit = false)
-//
-//
-//            Serial.println  ("Compute heat index ");
-//            Serial.println (hif);
-//            Serial.println (hic);
-//
-//            client.print(F("Humidity: "));
-//            client.print(h);
-//            client.print(" %");
-//            client.print("<br>");
-//            client.print(F("Temperature: "));
-//            client.print(t);
-//            client.print(" C");
-//            client.print("<br>");
-//            client.print("<hr>");
-//            client.print("<br>");
-//            client.print("DataOut: ");
-//            client.print(t);
-//            client.print(" ");
-//            client.print(h);
-
-            //**********************
-
-
+            // Section DHT 22 
+            sondeTH();
+            client.print(charBuf);
             // The HTTP response ends with another blank line:
             client.println();
             // break out of the while loop:
@@ -361,5 +274,3 @@ void printWEB() {
     delay(ddbg);
   }
 }
-
-// FIN Creation de la page web qui sera affichee
