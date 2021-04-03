@@ -1,6 +1,9 @@
 // DHT22
+char dbgTH = 1; // Normalement 0, mettre a 1 pour avoir une trace du programme dans le Serial Monitor
 
 void sondeTH() {
+  if (dbg || dbgTH) {Serial.println ("Boucle sondeTH");
+  delay(ddbg);}
   // DHT22
   //  // Wait a few seconds between measurements.
   //  delay(2000);
@@ -61,19 +64,23 @@ void sondeTH() {
   Serial.print(F("C "));
   Serial.print(hif);
   Serial.println(F("F"));
+
+  String resultatTH = "Humidity: " + String(h, 2) + "\tTemperature: " +  String(t, 2);
+  resultatTH.toCharArray(resultDHT, 40);
+  
   // DECISION RELAY !!!! =================================
   Serial.println("Declencheur: 22");  // DS  AJOUTER VARIABLE
   Serial.print("TCEL: ->");
   Serial.print(t);
   Serial.println("<-");
   if (t < 22) {
-    Serial.print("<<<<<<<<<<<<<<<<  ON CHAUFFE !!!!");
+    Serial.println("<<<<<<<<<<<<<<<<  ON CHAUFFE !!!!");
     digitalWrite(monRelais1, HIGH); 
   } else {
-    Serial.print(">>>>>>>>>>>>>>>>  ON FERME !!!!");
+    Serial.println(">>>>>>>>>>>>>>>>  ON FERME !!!!");
     digitalWrite(monRelais1, LOW); 
   }
-
   
-  
+if (dbg || dbgTH) {Serial.println ("FIN Boucle sondeTH");
+delay(ddbg);}  
 }

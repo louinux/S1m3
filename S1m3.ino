@@ -1,7 +1,7 @@
 
 #include <SPI.h>
 #include <WiFiNINA.h>
-#include "arduino_secrets.h" 
+#include "arduino_secrets.h"
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 //char ssid[] = SECRET_SSID;        // your network SSID (name)
 //char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
@@ -10,14 +10,11 @@
 // Reseau
 char ssid[] = "Loft";         // my network SSID (name)  // ################## mettre ds un autre fichier
 char pass[] = "1063Becker";       // my network key
-
 long rssi;
 
-
-
-char dbg = 0; // Normalement 0, mettre a 1 pour avoir une trace du programme dans le Serial Monitor
-int ddbg = 1000; // debug delay
-String maVersion = "202104011003"; // date '+%Y%m%d%H%M'
+char dbg = 1; // Normalement 0, mettre a 1 pour avoir une trace du programme dans le Serial Monitor
+int ddbg = 3000; // debug delay
+String maVersion = "202104021932"; // date '+%Y%m%d%H%M'
 
 int status = WL_IDLE_STATUS;                     // the Wifi radio's status
 
@@ -45,14 +42,16 @@ WiFiClient client = server.available(); // Returns the number of bytes available
 DHT dht(DHTPIN, DHTTYPE);
 // Fin DHT11
 
+char resultDHT[40];
+
 //  RELAY
-int monRelais1 = 13; 
+int monRelais1 = 13;
 
 void setup()
 {
 
   Serial.begin(9600);  // vitesse du transfert du port serie Initialize serial and wait for port to open:
-   dht.begin();  // sondeTH
+  dht.begin();  // sondeTH
   if (dbg) {
     delay(5000);
     Serial.println ("\n\n------------ S1m3 mode DEBUG ------------\n\n");
@@ -61,8 +60,8 @@ void setup()
     Serial.println ("\n\nBoucle setup");
   }
   // freeRam ();   // A ajouter ds debug pour test memoire
-//  pinMode(9, OUTPUT);   // set the LED pin mode  ######################################### a  faire
-//  digitalWrite(9, LOW); //LED OFF to show disconnected
+  //  pinMode(9, OUTPUT);   // set the LED pin mode  ######################################### a  faire
+  //  digitalWrite(9, LOW); //LED OFF to show disconnected
   if (dbg) while (!Serial); // wait for serial port to connect. Needed for Leonardo only
   while (!ScanSSIDs()) WiFiConnect();
   server.begin(); // A la bonne place ?????
@@ -84,8 +83,19 @@ void loop()
     Serial.println ("\nBoucle loop");
     delay(ddbg);
   }
- // Operations onglet 
- // sondeTH();
+
+  // #####################################################################################################################
+  // #####################################################################################################################
+
+  if (dbg) Serial.println ("Bloc OPERATION");
+  // bloc operations a faire avant l affichage web et meme si web plate
+  // sondeTH();
+  // DHT22            client.println(charBuf);
+  operations();
+  if (dbg) Serial.println ("FIN Bloc OPERATION");
+
+  // Operations onglet
+  // sondeTH();
   // millis: Returns the number of milliseconds passed since the Arduino board began running the current program.
   // This number will overflow (go back to zero), after approximately 50 days.
   time1 = millis();
@@ -254,30 +264,28 @@ void printWEB() {
             client.println("HTTP/1.1 200 OK");
             client.println("Content-type:text/html");
             client.println();
-            // client.print("<br>");
-            client.print("<p>");
-            client.print(maVersion);
-            client.print("</p>");
             
             //client.print("<H1>Preuve de concept <FONT color=green size=+8> S1m<SUP>3</SUP></FONT></H1>");
             client.print("<H1> BETA Preuve de concept BETA <FONT color=green size=+8> S1m<SUP>3</SUP></FONT></H1>");
-
-            // Section DHT 22 
-// #################################################################################################  //
-            sondeTH();
-// DHT22            client.println(charBuf);
-operations();
-// #################################################################################################  //
-
+            
+            //client.print("<p>");
+            // DHT
+            client.print(resultDHT);
 
             
+            client.print("<br>MonRelais1: ");
+            client.print(digitalRead(monRelais1));
+            client.print("<br><br>");
+            
             // Signal WiFi
-            client.print("<br>");
             client.print("Signal strength (RSSI):");
             client.print(rssi);
             client.println(" dBm");
+            // VERSION
+            client.print("<br>");
+            client.print(maVersion);
 
-            
+
             // The HTTP response ends with another blank line:
             client.println();
             // break out of the while loop:
