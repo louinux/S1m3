@@ -1,2 +1,2 @@
-#define SECRET_SSID "BELL912"
-#define SECRET_PASS "4D99624C5122"
+#define SECRET_SSID "------------"
+#define SECRET_PASS "---------"
